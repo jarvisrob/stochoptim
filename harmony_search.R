@@ -5,7 +5,7 @@
 # Keen to add constraints on outputs of f too (e.g. optimise on f1, constrain on f2)
 
 
-HarmonySearch <- function(f, x.lower, x.upper, hms = 30, hmcr = 0.9, par = 0.3, fw.frac = 0.001, d = 1, itn.max = 100, minimize = TRUE) {
+HarmonySearch <- function(f, x.lower, x.upper, ..., hms = 30, hmcr = 0.9, par = 0.3, fw.frac = 0.001, d = 1, itn.max = 100, minimize = TRUE) {
 
   # Determined consts
   n.x <- length(x.lower)
@@ -15,7 +15,7 @@ HarmonySearch <- function(f, x.lower, x.upper, hms = 30, hmcr = 0.9, par = 0.3, 
   x.hm <- u * matrix(rep(x.upper - x.lower, hms), nrow = hms, ncol = n.x, byrow = TRUE) + matrix(rep(x.lower, hms), nrow = hms, ncol = n.x, byrow = TRUE)
 
   # Calculate f = f(x) for each vector in HM
-  f.hm <- apply(x.hm, 1, f)
+  f.hm <- apply(x.hm, 1, f, ...)
   if (!minimize) {
     f.hm <- -f.hm
   }
@@ -41,7 +41,7 @@ HarmonySearch <- function(f, x.lower, x.upper, hms = 30, hmcr = 0.9, par = 0.3, 
     }
 
     # Calculate f = f(x) for new vector
-    f.new <- f(x.new)
+    f.new <- f(x.new, ...)
     if (!minimize) {
       f.new <- -f.new
     }
