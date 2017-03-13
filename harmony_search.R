@@ -4,21 +4,45 @@
 
 # Keen to add constraints on outputs of f too (e.g. optimise on f1, constrain on f2)
 
+# TO DO:
+# - discrete and continuous decision variables
+# - constraints on x and f values
+# - convergence tests
+# - possibly refactor generation of new vector to avoid so many for and if statements
+# - documentation/commenting
 
-HarmonySearch <- function(f, x.lower, x.upper, ..., hms = 30, hmcr = 0.9, par = 0.3, fw.frac = 0.001, d = 1, itn.max = 100, minimize = TRUE) {
+
+HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, fw.d,
+                          hms = 30, hmcr = 0.9, par = 0.3, 
+                          itn.max = 100, minimize = TRUE) {
 
   # Determined consts
-  n.x <- length(x.lower)
+  n.x <- length(x.type)
+  #n.f <- length(f.lower)
 
   # Generate random vectors of decision variables to create harmonic memory (HM)
-  u <- matrix(runif(hms * n.x), nrow = hms, ncol = n.x)
-  x.hm <- u * matrix(rep(x.upper - x.lower, hms), nrow = hms, ncol = n.x, byrow = TRUE) + matrix(rep(x.lower, hms), nrow = hms, ncol = n.x, byrow = TRUE)
+  x.hm <- matrix(rep(0, hms * n.x), nrow = hms, ncol = n.x)
+  for (j in 1:n.x) {
+    if (x.type[j] == "continuous") {
+      x.hm[, j] <- runif(hms, min = x.lower[j], max = x.upper[j])
+    } else if (x.type[j] == "discrete") {
+      x.hm[, j] <- sample(seq(from = x.lower[j], to = x.upper[j], by = fw.d[j]), hms, replace = TRUE)
+    } else {
+      print("ERROR")
+      return
+    }
+  }
+  #print(x.hm)
 
   # Calculate f = f(x) for each vector in HM
   f.hm <- apply(x.hm, 1, f, ...)
   if (!minimize) {
     f.hm <- -f.hm
   }
+  #print(f.hm)
+
+  # Check constraints
+  
 
   # Main iterative loop
   for (i in 1:itn.max) {
@@ -30,13 +54,29 @@ HarmonySearch <- function(f, x.lower, x.upper, ..., hms = 30, hmcr = 0.9, par = 
     flag.comp.from.hm <- runif(n.x) < hmcr
     x.new <- rep(0, n.x)
     for (j in 1:n.x) {
+
       if (flag.comp.from.hm[j]) {
         x.new[j] <- x.hm[comp.from.hm.idx[j], j]
         if (runif(1) < par) {
-          x.new[j] <- x.new[j] + fw.frac * (x.upper[j] - x.lower[j]) * runif(1, min = -1, max = 1)
+          if (x.type[j] == "continuous") {
+            x.new[j] <- x.new[j] + runif(1, min = -fw.d[j], max = fw.d[j])
+          } else if (x.type[j] == "discrete") {
+            x.new[j] <- x.new[j] + sample(c(-fw.d[j], fw.d[j]), 1)
+          } else {
+            print("ERROR")
+            return
+          }
         }
+
       } else {
-        x.new[j] <- runif(1, min = x.lower[j], max = x.upper[j])
+        if (x.type[j] == "continuous") {
+          x.new[j] <- runif(1, min = x.lower[j], max = x.upper[j])
+        } else if (x.type[j] == "discrete") {
+          x.new[j] <- sample(seq(from = x.lower[j], to = x.upper[j], by = fw.d[j]), 1)
+        } else {
+          print("ERROR")
+          return
+        }
       }
     }
 
