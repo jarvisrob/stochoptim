@@ -5,20 +5,19 @@
 # Keen to add constraints on outputs of f too (e.g. optimise on f1, constrain on f2)
 
 # TO DO:
-# - discrete and continuous decision variables
 # - constraints on x and f values
 # - convergence tests
 # - possibly refactor generation of new vector to avoid so many for and if statements
 # - documentation/commenting
 
 
-HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, fw.d,
+HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw.d,
                           hms = 30, hmcr = 0.9, par = 0.3, 
                           itn.max = 100, minimize = TRUE) {
 
   # Determined consts
   n.x <- length(x.type)
-  #n.f <- length(f.lower)
+  n.f <- length(f.lower)
 
   # Generate random vectors of decision variables to create harmonic memory (HM)
   x.hm <- matrix(rep(0, hms * n.x), nrow = hms, ncol = n.x)
@@ -42,7 +41,18 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, fw.d,
   #print(f.hm)
 
   # Check constraints
-  
+  flag.x.constr.violated <- matrix(rep(0, hms * n.x), nrow = hms, ncol = n.x)
+  flag.f.constr.violated <- matrix(rep(0, hms * n.f), nrow = hms, ncol = n.f)
+  for (j in 1:n.x) {
+    flag.x.constr.violated[, j] <- as.integer(x.hm[, j] < x.lower[j] | x.hm[, j] > x.upper[j])
+  }
+  print(flag.x.constr.violated)
+  for (j in 1:n.f) {
+    flag.f.constr.violated[j] <- as.integer(f.hm[j] < f.lower[j] | f.hm[j] > f.upper[j])
+  }
+  print(flag.f.constr.violated)
+  total.constr.violated <- rowSums(cbind(flag.x.constr.violated, flag.f.constr.violated))
+  print(total.constr.violated)
 
   # Main iterative loop
   for (i in 1:itn.max) {
@@ -85,6 +95,17 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, fw.d,
     if (!minimize) {
       f.new <- -f.new
     }
+
+    # Check constraints
+    flag.x.new.constr.violated <- rep(0, n.x)
+    flag.f.new.constr.violated <- rep(0, n.f)
+    for (j in 1:n.x) {
+      flag.x.new.constr.violated[j] <- as.integer(x.new[j] < x.lower[j] | x.new[j] > x.upper[j])
+    }
+    for (j in 1:n.f) {
+      flag.f.new.constr.violated[j] <- as.integer(f.new[j] < f.lower[j] | f.new[j] > f.upper[j])
+    }
+    total.new.constr.violated <- sum(c(flag.x.new.constr.violated, flag.f.new.constr.violated))
     
     # If f for new vector is better than worst f in HM, replace
     f.worst <- max(f.hm)
@@ -92,11 +113,14 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, fw.d,
     if (f.new < f.worst) {
       x.hm[idx.worst, ] <- x.new
       f.hm[idx.worst] <- f.new
+      flag.x.constr.violated[idx.worst, ] <- flag.x.new.constr.violated
+      flag.f.constr.violated[idx.worst, ] <- flag.f.new.constr.violated
+      total.constr.violated <- rowSums(cbind(flag.x.constr.violated, flag.f.constr.violated))
     }
 
   }
 
-  # Find the best f and its x vector, i.e. the result of the optimisation
+  # Find the best f, its x vector, and constraint flags, i.e. the result of the optimisation
   f.best <- min(f.hm)
   idx.best <- which.min(f.hm)
   x.best <- x.hm[idx.best, ]
@@ -105,9 +129,10 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, fw.d,
     f.best <- -f.best
   }
   hm <- cbind(x.hm, f.hm)
+  constr.violated <- cbind(flag.x.constr.violated, flag.f.constr.violated, total.constr.violated)
 
   # Return best f, its x vector, and all of harmonic memory
-  harm.search.result <- list(f.best = f.best, x.best = x.best, hm = hm)
+  harm.search.result <- list(f.best = f.best, x.best = x.best, hm = hm, constr.violated = constr.violated)
   harm.search.result
 }
 
