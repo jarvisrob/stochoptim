@@ -40,7 +40,7 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw
   if (!minimize) {
     f.hm[, 1] <- -f.hm[, 1]
   }
-  print(f.hm)
+  #print(f.hm)
 
   # Check constraints
   flag.x.constr.violated <- matrix(rep(0, hms * n.x), nrow = hms, ncol = n.x)
@@ -48,14 +48,14 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw
   for (j in 1:n.x) {
     flag.x.constr.violated[, j] <- as.integer(x.hm[, j] < x.lower[j] | x.hm[, j] > x.upper[j])
   }
-  print(flag.x.constr.violated)
+  #print(flag.x.constr.violated)
   for (j in 1:n.f) {
     flag.f.constr.violated[, j] <- as.integer(f.hm[, j] < f.lower[j] | f.hm[, j] > f.upper[j])
   }
   #flag.f.constr.violated <- as.integer(f.hm < f.lower | f.hm > f.upper)
-  print(flag.f.constr.violated)
+  #print(flag.f.constr.violated)
   total.constr.violated <- rowSums(cbind(flag.x.constr.violated, flag.f.constr.violated))
-  print(total.constr.violated)
+  #print(total.constr.violated)
 
   # Main iterative loop
   for (i in 1:itn.max) {
@@ -122,10 +122,12 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw
     f.worst <- f.hm[idx.worst, 1]
     #print(cbind(x.hm, f.hm, total.constr.violated))
     #print(idx.worst)
+    #print(f.worst)
+    #print(total.constr.violated.worst)
     #f.worst <- max(f.hm)
     #idx.worst <- which.max(f.hm)
     if ((total.new.constr.violated < total.constr.violated.worst) |
-        (total.new.constr.violated == total.constr.violated.worst) & f.new < f.worst) {
+        (total.new.constr.violated == total.constr.violated.worst) & f.new[1] < f.worst) {
       x.hm[idx.worst, ] <- x.new
       f.hm[idx.worst, ] <- f.new
       flag.x.constr.violated[idx.worst, ] <- flag.x.new.constr.violated
