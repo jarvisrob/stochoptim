@@ -5,7 +5,6 @@
 # Keen to add constraints on outputs of f too (e.g. optimise on f1, constrain on f2)
 
 # TO DO:
-# - constraints on x and f values
 # - convergence tests
 # - possibly refactor generation of new vector to avoid so many for and if statements
 # - documentation/commenting
@@ -27,7 +26,7 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw
     } else if (x.type[j] == "discrete") {
       x.hm[, j] <- sample(seq(from = x.lower[j], to = x.upper[j], by = fw.d[j]), hms, replace = TRUE)
     } else {
-      print("ERROR")
+      print("ERROR in generation of x for HM")
       return
     }
   }
@@ -43,18 +42,18 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw
   #print(f.hm)
 
   # Check constraints
-  flag.x.constr.violated <- matrix(rep(0, hms * n.x), nrow = hms, ncol = n.x)
+  #flag.x.constr.violated <- matrix(rep(0, hms * n.x), nrow = hms, ncol = n.x)
   flag.f.constr.violated <- matrix(rep(0, hms * n.f), nrow = hms, ncol = n.f)
-  for (j in 1:n.x) {
-    flag.x.constr.violated[, j] <- as.integer(x.hm[, j] < x.lower[j] | x.hm[, j] > x.upper[j])
-  }
+  #for (j in 1:n.x) {
+    #flag.x.constr.violated[, j] <- as.integer(x.hm[, j] < x.lower[j] | x.hm[, j] > x.upper[j])
+  #}
   #print(flag.x.constr.violated)
   for (j in 1:n.f) {
     flag.f.constr.violated[, j] <- as.integer(f.hm[, j] < f.lower[j] | f.hm[, j] > f.upper[j])
   }
   #flag.f.constr.violated <- as.integer(f.hm < f.lower | f.hm > f.upper)
   #print(flag.f.constr.violated)
-  total.constr.violated <- rowSums(cbind(flag.x.constr.violated, flag.f.constr.violated))
+  total.constr.violated <- rowSums(flag.f.constr.violated)
   #print(total.constr.violated)
 
   # Main iterative loop
@@ -76,8 +75,13 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw
           } else if (x.type[j] == "discrete") {
             x.new[j] <- x.new[j] + sample(c( - fw.d[j], fw.d[j]), 1)
           } else {
-            print("ERROR")
+            print("ERROR in taking new x comp from HM")
             return
+          }
+          if (x.new[j] < x.lower[j]) {
+            x.new[j] <- x.lower[j]
+          } else if (x.new[j] > x.upper[j]) {
+            x.new[j] <- x.upper[j]
           }
         }
 
@@ -87,7 +91,7 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw
         } else if (x.type[j] == "discrete") {
           x.new[j] <- sample(seq(from = x.lower[j], to = x.upper[j], by = fw.d[j]), 1)
         } else {
-          print("ERROR")
+          print("ERROR in random new x comp")
           return
         }
       }
@@ -102,16 +106,16 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw
     #print(f.new)
 
     # Check constraints
-    flag.x.new.constr.violated <- rep(0, n.x)
+    #flag.x.new.constr.violated <- rep(0, n.x)
     flag.f.new.constr.violated <- rep(0, n.f)
-    for (j in 1:n.x) {
-      flag.x.new.constr.violated[j] <- as.integer(x.new[j] < x.lower[j] | x.new[j] > x.upper[j])
-    }
+    #for (j in 1:n.x) {
+      #flag.x.new.constr.violated[j] <- as.integer(x.new[j] < x.lower[j] | x.new[j] > x.upper[j])
+    #}
     for (j in 1:n.f) {
       flag.f.new.constr.violated[j] <- as.integer(f.new[j] < f.lower[j] | f.new[j] > f.upper[j])
     }
     #flag.f.new.constr.violated <- as.integer(f.new < f.lower | f.new > f.upper)
-    total.new.constr.violated <- sum(c(flag.x.new.constr.violated, flag.f.new.constr.violated))
+    total.new.constr.violated <- sum(flag.f.new.constr.violated)
     #print(flag.x.new.constr.violated)
     #print(flag.f.new.constr.violated)
     #print(total.new.constr.violated)
@@ -130,9 +134,9 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw
         (total.new.constr.violated == total.constr.violated.worst) & f.new[1] < f.worst) {
       x.hm[idx.worst, ] <- x.new
       f.hm[idx.worst, ] <- f.new
-      flag.x.constr.violated[idx.worst, ] <- flag.x.new.constr.violated
+      #flag.x.constr.violated[idx.worst, ] <- flag.x.new.constr.violated
       flag.f.constr.violated[idx.worst, ] <- flag.f.new.constr.violated
-      total.constr.violated <- rowSums(cbind(flag.x.constr.violated, flag.f.constr.violated))
+      total.constr.violated <- rowSums(flag.f.constr.violated)
     }
 
   }
@@ -147,7 +151,7 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw
   x.best <- x.hm[idx.best, ]
   f.best <- f.hm[idx.best, ]
   hm <- cbind(x.hm, f.hm)
-  constr.violated <- cbind(flag.x.constr.violated, flag.f.constr.violated, total.constr.violated)
+  constr.violated <- cbind(flag.f.constr.violated, total.constr.violated)
 
   # Return best f, its x vector, and all of harmonic memory
   harm.search.result <- list(f1.best = f1.best, x.best = x.best, f.best = f.best, idx.best = idx.best, hm = hm, constr.violated = constr.violated)
