@@ -8,38 +8,54 @@
 # - convergence tests
 # - possibly refactor generation of new vector to avoid so many for and if statements
 # - documentation/commenting
+# - optimise to meet constraints as higher priority, at the moment when constraints
+#   are consistently violated only attempts to remove violation by reducing primary
+#   objective
+# - option for printing progressive updates to console
+# - load HM from previous optimisation as starting point to effectively 'cascade'
+#   optimisations where hasn't yet converged
 
 
 HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw.d,
                           hms = 30, hmcr = 0.9, par = 0.3,
-                          itn.max = 100, minimize = TRUE) {
+                          itn.max = 100, minimize = TRUE, hm.init = NULL) {
 
   # Determined consts
   n.x <- length(x.type)
   n.f <- length(f.lower)
 
-  # Generate random vectors of decision variables to create harmonic memory (HM)
-  x.hm <- matrix(rep(0, hms * n.x), nrow = hms, ncol = n.x)
-  for (j in 1:n.x) {
-    if (x.type[j] == "continuous") {
-      x.hm[, j] <- runif(hms, min = x.lower[j], max = x.upper[j])
-    } else if (x.type[j] == "discrete") {
-      x.hm[, j] <- sample(seq(from = x.lower[j], to = x.upper[j], by = fw.d[j]), hms, replace = TRUE)
-    } else {
-      print("ERROR in generation of x for HM")
-      return
-    }
-  }
-  #print(x.hm)
+  if (is.null(hm.init)) {
 
-  # Calculate f = f(x) for each vector in HM
-  # First column is always the variable to be optimised, other cols can be constrained
-  f.res <- apply(x.hm, 1, f, ...)
-  f.hm <- matrix(unlist(f.res), nrow = hms, ncol = n.f, byrow = TRUE)
+    # Generate random vectors of decision variables to create harmonic memory (HM)
+    x.hm <- matrix(rep(0, hms * n.x), nrow = hms, ncol = n.x)
+    for (j in 1:n.x) {
+      if (x.type[j] == "continuous") {
+        x.hm[, j] <- runif(hms, min = x.lower[j], max = x.upper[j])
+      } else if (x.type[j] == "discrete") {
+        x.hm[, j] <- sample(seq(from = x.lower[j], to = x.upper[j], by = fw.d[j]), hms, replace = TRUE)
+      } else {
+        print("ERROR in generation of x for HM")
+        return
+      }
+    }
+    #print(x.hm)
+
+    # Calculate f = f(x) for each vector in HM
+    # First column is always the variable to be optimised, other cols can be constrained
+    f.res <- apply(x.hm, 1, f, ...)
+    f.hm <- matrix(unlist(f.res), nrow = hms, ncol = n.f, byrow = TRUE)
+    #print(f.hm)
+
+  } else {
+    print(n.x)
+    print(ncol(hm.init))
+    x.hm <- hm.init[, 1:n.x]
+    f.hm <- hm.init[, (n.x + 1) : ncol(hm.init)]
+  }
+
   if (!minimize) {
     f.hm[, 1] <- -f.hm[, 1]
   }
-  #print(f.hm)
 
   # Check constraints
   #flag.x.constr.violated <- matrix(rep(0, hms * n.x), nrow = hms, ncol = n.x)
