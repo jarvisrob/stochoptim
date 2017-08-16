@@ -85,6 +85,8 @@ HarmonySearch <- function(f, ..., x.type, x.lower, x.upper, f.lower, f.upper, fw
   print("Start main iterative loop ...")
   for (i in 1:itn.max) {
 
+    print(paste0("Itn ", as.character(i), " of ", as.character(itn.max)))
+
     # Generate new vector
     # Start by constructing as random combination of components from vectors in HM
     # Overwrite with random values where component is not to be taken from HM
